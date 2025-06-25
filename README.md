@@ -28,7 +28,7 @@ Modern web interface to view FLV camera streams from 3D printers over LAN.
 
 ## 📦 Files
 
-- `anycubic-s1-cam-v3.html` → Main interface with embedded HTML, CSS, and JS
+- Main interface with embedded HTML, CSS, and JS
 - No backend server or extra dependencies required
 
 ## 🧪 Compatibility
