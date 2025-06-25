@@ -1,0 +1,1230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>3D Printer - Camera Viewer</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* Brand Colors */
+            --primary-orange: #FF6B35;
+            --primary-dark-orange: #E55A2E;
+            --primary-blue: #1E3A8A;
+            --primary-light-blue: #3B82F6;
+            --primary-gray: #F3F4F6;
+            --primary-dark-gray: #374151;
+            --primary-black: #111827;
+            
+            /* UI Colors */
+            --bg-primary: #0F172A;
+            --bg-secondary: #1E293B;
+            --bg-card: #334155;
+            --text-primary: #F8FAFC;
+            --text-secondary: #CBD5E1;
+            --border-color: #475569;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --error: #EF4444;
+            
+            /* Gradients */
+            --gradient-brand: linear-gradient(135deg, var(--primary-orange), var(--primary-blue));
+            --gradient-card: linear-gradient(135deg, rgba(255, 107, 53, 0.1), rgba(30, 58, 138, 0.1));
+            --gradient-button: linear-gradient(135deg, var(--primary-orange), var(--primary-dark-orange));
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Animated Background */
+        .bg-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            opacity: 0.03;
+            background: 
+                radial-gradient(circle at 20% 50%, var(--primary-orange) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, var(--primary-blue) 0%, transparent 50%),
+                radial-gradient(circle at 40% 80%, var(--primary-light-blue) 0%, transparent 50%);
+            animation: float 20s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            33% { transform: translateY(-20px) rotate(1deg); }
+            66% { transform: translateY(10px) rotate(-1deg); }
+        }
+
+        /* Header */
+        .header {
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--gradient-brand);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+            font-size: 1.2rem;
+        }
+
+        .logo-text {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: var(--gradient-brand);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: rgba(52, 65, 85, 0.6);
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--error);
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.connected {
+            background: var(--success);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Main Container */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+            display: grid;
+            gap: 1rem;
+            grid-template-columns: 1fr;
+        }
+
+        /* Instructions Card */
+        .instructions-card {
+            background: var(--gradient-card);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 0.6rem;
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .instructions-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--gradient-brand);
+        }
+
+        .instructions-title {
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-bottom: 0.3rem;
+            color: var(--primary-orange);
+        }
+
+        .instructions-card p {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.4rem;
+        }
+
+        .steps-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 0.4rem;
+            margin-top: 0.4rem;
+        }
+
+        .step-card {
+            background: rgba(52, 65, 85, 0.4);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 0.4rem 0.6rem;
+            transition: all 0.3s ease;
+            position: relative;
+            cursor: pointer;
+            min-height: 40px;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .step-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(255, 107, 53, 0.2);
+            border-color: var(--primary-orange);
+        }
+
+        .step-card.active {
+            border-color: var(--primary-orange);
+            box-shadow: 0 0 20px rgba(255, 107, 53, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .step-card.complete {
+            border-color: var(--success);
+            background: rgba(16, 185, 129, 0.1);
+        }
+
+        .step-card.complete:hover {
+            border-color: var(--success);
+            box-shadow: 0 8px 25px rgba(16, 185, 129, 0.2);
+        }
+
+        .step-number {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: var(--bg-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            border: 1px solid var(--border-color);
+            flex-shrink: 0;
+            font-size: 0.7rem;
+        }
+
+        .step-card.active .step-number {
+            background: var(--primary-orange);
+            border-color: var(--primary-orange);
+            color: white;
+        }
+
+        .step-card.complete .step-number {
+            background: var(--success);
+            border-color: var(--success);
+            color: white;
+        }
+
+        .step-content {
+            flex: 1;
+        }
+
+        .step-title {
+            font-weight: 500;
+            margin-bottom: 0;
+            font-size: 0.7rem;
+        }
+
+        .step-description {
+            font-size: 0.6rem;
+            color: var(--text-secondary);
+            margin-top: 0.2rem;
+            opacity: 0;
+            max-height: 0;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .step-card:hover .step-description {
+            opacity: 1;
+            max-height: 25px;
+        }
+
+        /* Video Section */
+        .video-section {
+            background: var(--bg-secondary);
+            border-radius: 20px;
+            padding: 2rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .video-container {
+            position: relative;
+            width: 100%;
+            background: #000;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            min-height: 400px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #videoElement {
+            width: 100%;
+            height: auto;
+            display: block;
+            background: #000;
+        }
+
+        .loading-indicator {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+            color: white;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top: 3px solid var(--primary-orange);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Control Panel */
+        .control-panel {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            padding: 1rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .controls-grid {
+            display: flex;
+            gap: 0.6rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 1rem;
+        }
+
+        .control-btn {
+            width: 45px;
+            height: 45px;
+            border: none;
+            border-radius: 50%;
+            background: var(--gradient-button);
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 3px 12px rgba(255, 107, 53, 0.3);
+            position: relative;
+        }
+
+        .control-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(255, 107, 53, 0.4);
+        }
+
+        .control-btn:active {
+            transform: translateY(0);
+        }
+
+        .control-btn:disabled {
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .control-btn.active {
+            background: linear-gradient(135deg, var(--primary-blue), var(--primary-light-blue));
+        }
+
+        /* Status Grid */
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 0.6rem;
+        }
+
+        .status-card {
+            background: rgba(52, 65, 85, 0.4);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 0.8rem;
+            text-align: center;
+        }
+
+        .status-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.3rem;
+        }
+
+        .status-value {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--primary-orange);
+        }
+
+        .status-value.success { color: var(--success); }
+        .status-value.warning { color: var(--warning); }
+        .status-value.error { color: var(--error); }
+
+        /* Modal */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 2rem;
+        }
+
+        .modal-content {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 2rem;
+            max-width: 500px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--primary-orange);
+            margin-bottom: 0.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .form-input, .form-select {
+            width: 100%;
+            padding: 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-input:focus, .form-select:focus {
+            outline: none;
+            border-color: var(--primary-orange);
+            box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 1rem;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: var(--gradient-button);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: var(--bg-card);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+        }
+
+        /* Debug Log */
+        .debug-log {
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.8rem;
+            display: none;
+        }
+
+        .log-entry {
+            margin: 0.25rem 0;
+            padding: 0.25rem;
+            border-radius: 4px;
+        }
+
+        .log-info { color: var(--text-secondary); }
+        .log-warn { color: var(--warning); }
+        .log-error { color: var(--error); }
+        .log-success { color: var(--success); }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+                gap: 0.8rem;
+            }
+
+            .header {
+                padding: 1rem;
+            }
+
+            .logo-text {
+                font-size: 1.2rem;
+            }
+
+            .instructions-card,
+            .video-section,
+            .control-panel {
+                padding: 1rem;
+            }
+
+            .steps-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .status-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .control-btn {
+                width: 40px;
+                height: 40px;
+                font-size: 1rem;
+            }
+
+            .modal {
+                padding: 1rem;
+            }
+
+            .modal-content {
+                padding: 1.5rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .controls-grid {
+                gap: 0.5rem;
+            }
+
+            .status-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+        }
+
+        /* Tooltip */
+        .tooltip {
+            position: relative;
+            cursor: help;
+        }
+
+        .tooltip::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            padding: 0.6rem 0.9rem;
+            border-radius: 6px;
+            font-size: 0.65rem;
+            line-height: 1.2;
+            white-space: normal;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.25s ease;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+            z-index: 1000;
+            margin-top: 6px;
+            max-width: 260px;
+            text-align: center;
+        }
+
+        .tooltip:hover::after {
+            opacity: 1;
+            visibility: visible;
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-animation"></div>
+    
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">
+                <div class="logo-icon">📷</div>
+                <div class="logo-text">Remote Cam</div>
+            </div>
+            <div class="status-indicator">
+                <div class="status-dot" id="connectionDot"></div>
+                <span id="connectionStatus">Disconnected</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Instructions -->
+        <div class="instructions-card">
+            <div class="step-card" style="margin-bottom: 0.4rem; background: none; border: none; padding: 0;">
+                <div class="step-content">
+                    <div class="step-title">🚀 Setup Instructions</div>
+                    <div class="step-description">After completing the steps, you can reconnect the printer to the cloud and still view the stream here. If the printer restarts, repeat the setup process.</div>
+                </div>
+            </div>
+            <p>Follow these steps to connect your Print camera stream:</p>
+            
+            <div class="steps-grid">
+                <div class="step-card" id="step1">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <div class="step-title">Set Printer to LAN Mode</div>
+                        <div class="step-description">Enable LAN mode on your printer settings</div>
+                    </div>
+                </div>
+                <div class="step-card" id="step2">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <div class="step-title">Open Slicer</div>
+                        <div class="step-description">Launch Slicer software on your computer</div>
+                    </div>
+                </div>
+                <div class="step-card" id="step3">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <div class="step-title">Activate Camera</div>
+                        <div class="step-description">Click the camera play button in the slicer interface</div>
+                    </div>
+                </div>
+                <div class="step-card" id="step4">
+                    <div class="step-number">4</div>
+                    <div class="step-content">
+                        <div class="step-title">Connect Stream</div>
+                        <div class="step-description">Configure and connect to your camera stream</div>
+                    </div>
+                </div>
+            </div>
+            <button id="toggleStepsBtn" class="tooltip" data-tooltip="Show/Hide Steps" style="margin-top: 0.6rem; background: none; border: none; color: var(--primary-orange); font-size: 0.7rem; cursor: pointer; display: none;">🔽 Show Steps</button>
+        </div>
+
+        <!-- Video Section -->
+        <div class="video-section">
+            <div class="video-container">
+                <video id="videoElement" muted></video>
+                <div class="loading-indicator" id="loadingIndicator">
+                    <div class="spinner"></div>
+                    <div>Connecting to camera...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Control Panel -->
+        <div class="control-panel">
+            <div class="controls-grid">
+                <button class="control-btn tooltip" id="playBtn" data-tooltip="Play Stream">
+                    ▶
+                </button>
+                <button class="control-btn tooltip" id="reconnectBtn" data-tooltip="Reconnect">
+                    🔄
+                </button>
+                <button class="control-btn tooltip" id="configBtn" data-tooltip="Configuration">
+                    ⚙️
+                </button>
+                <button class="control-btn tooltip" id="toggleLogBtn" data-tooltip="Toggle Debug Log">
+                    📋
+                </button>
+                <button class="control-btn tooltip" id="clearLogBtn" data-tooltip="Clear Log">
+                    🗑️
+                </button>
+            </div>
+
+            <div class="status-grid">
+                <div class="status-card">
+                    <div class="status-label">Connection Status</div>
+                    <div class="status-value" id="statusText">Initializing</div>
+                </div>
+                <div class="status-card">
+                    <div class="status-label">Stream URL</div>
+                    <div class="status-value" id="urlStatus">-</div>
+                </div>
+                <div class="status-card">
+                    <div class="status-label">Speed</div>
+                    <div class="status-value" id="speedStatus">-</div>
+                </div>
+                <div class="status-card">
+                    <div class="status-label">Latency</div>
+                    <div class="status-value" id="latencyStatus">-</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Debug Log -->
+        <div class="debug-log" id="debugLog">
+            <div class="log-entry log-info">Debug log initialized...</div>
+        </div>
+    </div>
+
+    <!-- Configuration Modal -->
+    <div class="modal" id="configModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Camera Configuration</h2>
+                <p>Configure your print camera connection settings</p>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="protocolSelect">Protocol</label>
+                <select class="form-select" id="protocolSelect">
+                    <option value="http">HTTP</option>
+                    <option value="https">HTTPS</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="ipInput">IP Address or Domain</label>
+                <input type="text" class="form-input" id="ipInput" placeholder="192.168.1.6" />
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="portInput">Port/Path (optional)</label>
+                <input type="text" class="form-input" id="portInput" placeholder="18088/flv or /flv" />
+            </div>
+            
+            <div class="button-group">
+                <button class="btn btn-primary" id="saveConfigBtn">Connect</button>
+                <button class="btn btn-secondary" id="useDefaultBtn">Use Default</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/flv.js/dist/flv.min.js"></script>
+    <script>
+        // Application State
+        let flvPlayer = null;
+        let streamUrl = '';
+        let logBuffer = [];
+        let lastLogState = '';
+        let lastVideoState = '';
+        let isPlaying = false;
+
+        // DOM Elements
+        const video = document.getElementById('videoElement');
+        const statusText = document.getElementById('statusText');
+        const urlStatus = document.getElementById('urlStatus');
+        const speedStatus = document.getElementById('speedStatus');
+        const latencyStatus = document.getElementById('latencyStatus');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const debugLog = document.getElementById('debugLog');
+        const configModal = document.getElementById('configModal');
+        const connectionDot = document.getElementById('connectionDot');
+        const connectionStatus = document.getElementById('connectionStatus');
+
+        // Step Management
+        function updateStepStatus(stepNumber, status) {
+            const step = document.getElementById(`step${stepNumber}`);
+            if (step) {
+                step.className = `step-card ${status}`;
+            }
+        }
+
+        // Configuration Management
+        function loadConfig() {
+            const savedProtocol = localStorage.getItem('printer_protocol') || 'http';
+            const savedIP = localStorage.getItem('printer_ip');
+            const savedPort = localStorage.getItem('printer_port');
+            
+            if (savedIP) {
+                streamUrl = buildUrl(savedProtocol, savedIP, savedPort);
+                urlStatus.textContent = streamUrl;
+                configModal.style.display = 'none';
+                initializePlayer();
+            } else {
+                showConfigModal();
+            }
+        }
+
+        function buildUrl(protocol, ip, port) {
+            let url = `${protocol}://${ip}`;
+            
+            if (port && port.trim() !== '') {
+                const portValue = port.trim();
+                if (portValue.startsWith('/')) {
+                    url += portValue;
+                } else {
+                    url += `:${portValue}`;
+                }
+            }
+            
+            return url;
+        }
+
+        function saveConfig(protocol, ip, port) {
+            localStorage.setItem('printer_protocol', protocol);
+            localStorage.setItem('printer_ip', ip);
+            localStorage.setItem('printer_port', port || '');
+            
+            streamUrl = buildUrl(protocol, ip, port);
+            urlStatus.textContent = streamUrl;
+            configModal.style.display = 'none';
+            initializePlayer();
+        }
+
+        function showConfigModal() {
+            configModal.style.display = 'flex';
+            document.getElementById('protocolSelect').value = localStorage.getItem('printer_protocol') || 'http';
+            document.getElementById('ipInput').value = localStorage.getItem('printer_ip') || '';
+            document.getElementById('portInput').value = localStorage.getItem('printer_port') || '';
+        }
+
+        // Logging System
+        function addLog(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${message}`;
+            
+            const videoStates = {
+                'canplay': 'Video: Ready to play',
+                'playing': 'Video: Playing',
+                'waiting': 'Video: Waiting for data...',
+                'loadstart': 'Starting stream load...'
+            };
+            
+            let stateKey = null;
+            for (const [key, state] of Object.entries(videoStates)) {
+                if (message === state) {
+                    stateKey = key;
+                    break;
+                }
+            }
+            
+            if (stateKey) {
+                if (lastVideoState !== stateKey) {
+                    lastVideoState = stateKey;
+                    logBuffer.push({ message: logEntry, type });
+                    updateLogDisplay();
+                }
+            } else {
+                if (lastLogState !== message) {
+                    lastLogState = message;
+                    logBuffer.push({ message: logEntry, type });
+                    updateLogDisplay();
+                }
+            }
+            
+            // Limit log buffer
+            if (logBuffer.length > 500) {
+                logBuffer = logBuffer.slice(-500);
+            }
+        }
+
+        function updateLogDisplay() {
+            debugLog.innerHTML = '';
+            logBuffer.forEach(entry => {
+                const div = document.createElement('div');
+                div.className = `log-entry log-${entry.type}`;
+                div.textContent = entry.message;
+                debugLog.appendChild(div);
+            });
+            debugLog.scrollTop = debugLog.scrollHeight;
+        }
+
+        // Connection Status
+        function updateConnectionStatus(status, className) {
+            connectionStatus.textContent = status;
+            connectionDot.className = `status-dot ${className}`;
+        }
+
+        // Player Management
+        function checkBrowserSupport() {
+            if (!flvjs.isSupported()) {
+                addLog('ERROR: Browser does not support FLV.js', 'error');
+                statusText.textContent = 'Browser Incompatible';
+                statusText.className = 'status-value error';
+                updateConnectionStatus('Browser Error', '');
+                return false;
+            }
+            addLog('Browser compatible with FLV.js', 'info');
+            return true;
+        }
+
+        function destroyPlayer() {
+            if (flvPlayer) {
+                addLog('Destroying previous player...', 'warn');
+                flvPlayer.unload();
+                flvPlayer.detachMediaElement();
+                flvPlayer.destroy();
+                flvPlayer = null;
+            }
+            video.pause();
+            video.removeAttribute('src');
+            video.load();
+        }
+
+        function createPlayer() {
+            destroyPlayer();
+            if (!checkBrowserSupport()) return;
+
+            lastVideoState = '';
+            lastLogState = '';
+            
+            addLog(`Creating player for: ${streamUrl}`, 'info');
+            updateConnectionStatus('Connecting...', '');
+            updateStepStatus(4, 'active');
+
+            const config = {
+                type: 'flv',
+                url: streamUrl,
+                isLive: true,
+                cors: true
+            };
+            
+            const ops = {
+                enableStashBuffer: false,
+                stashInitialSize: 64,
+                autoCleanupMaxBackwardDuration: 10,
+                autoCleanupMinBackwardDuration: 5,
+                fixAudioTimestampGap: false,
+                enableWorker: false,
+                lazyLoad: false
+            };
+
+            flvPlayer = flvjs.createPlayer(config, ops);
+            flvPlayer.attachMediaElement(video);
+
+            // Player Events
+            flvPlayer.on(flvjs.Events.ERROR, (errorType, errorDetail) => {
+                addLog(`ERROR: ${errorType} - ${errorDetail}`, 'error');
+                statusText.textContent = `Error: ${errorType}`;
+                statusText.className = 'status-value error';
+                updateConnectionStatus('Connection Error', '');
+                loadingIndicator.style.display = 'none';
+                
+                if (errorDetail && errorDetail.toString().toLowerCase().includes('cors')) {
+                    addLog('CORS not allowed by server. Add Access-Control-Allow-Origin header.', 'error');
+                }
+                
+                setTimeout(() => {
+                    addLog('Attempting automatic reconnection...', 'warn');
+                    createPlayer();
+                }, 3000);
+            });
+
+            flvPlayer.on(flvjs.Events.STATISTICS_INFO, (stats) => {
+                const newSpeed = `${stats.speed ? stats.speed.toFixed(2) : 0} KB/s`;
+                if (speedStatus.textContent !== newSpeed) {
+                    speedStatus.textContent = newSpeed;
+                }
+            });
+
+            // Video Events
+            video.addEventListener('canplay', () => {
+                addLog('Video: Ready to play', 'info');
+                statusText.textContent = 'Ready';
+                statusText.className = 'status-value success';
+                updateConnectionStatus('Connected', 'connected');
+                loadingIndicator.style.display = 'none';
+                updateStepStatus(4, 'complete');
+                video.play().catch(() => {});
+            });
+
+            video.addEventListener('playing', () => {
+                addLog('Video: Playing', 'info');
+                statusText.textContent = 'Streaming';
+                statusText.className = 'status-value success';
+                updateConnectionStatus('Streaming', 'connected');
+                loadingIndicator.style.display = 'none';
+                updateStepStatus(4, 'complete');
+                isPlaying = true;
+            });
+
+            video.addEventListener('waiting', () => {
+                if (!isPlaying) {
+                    addLog('Video: Waiting for data...', 'warn');
+                    statusText.textContent = 'Buffering';
+                    statusText.className = 'status-value warning';
+                    updateConnectionStatus('Buffering...', '');
+                }
+            });
+
+            video.addEventListener('pause', () => {
+                isPlaying = false;
+                updateConnectionStatus('Paused', '');
+            });
+
+            video.addEventListener('ended', () => {
+                isPlaying = false;
+                updateConnectionStatus('Stream Ended', '');
+            });
+
+            video.addEventListener('error', (e) => {
+                addLog(`Video error: ${e.message || 'Unknown error'}`, 'error');
+                statusText.textContent = 'Video Error';
+                statusText.className = 'status-value error';
+                updateConnectionStatus('Video Error', '');
+            });
+
+            flvPlayer.load();
+            addLog('Starting stream load...', 'info');
+            loadingIndicator.style.display = 'flex';
+        }
+
+        // Event Listeners
+        document.getElementById('saveConfigBtn').onclick = () => {
+            const protocol = document.getElementById('protocolSelect').value;
+            const ip = document.getElementById('ipInput').value.trim();
+            const port = document.getElementById('portInput').value.trim();
+            
+            if (!ip) {
+                alert('Please enter the printer IP address');
+                return;
+            }
+            
+            saveConfig(protocol, ip, port);
+        };
+
+        document.getElementById('useDefaultBtn').onclick = () => {
+            saveConfig('http', '192.168.1.6', '18088/flv');
+        };
+
+        document.getElementById('playBtn').onclick = () => {
+            video.play().catch(e => {
+                addLog(`Play error: ${e.message}`, 'error');
+            });
+        };
+
+        document.getElementById('reconnectBtn').onclick = () => {
+            addLog('Manual reconnection requested', 'warn');
+            createPlayer();
+        };
+
+        document.getElementById('configBtn').onclick = () => {
+            showConfigModal();
+        };
+
+        document.getElementById('clearLogBtn').onclick = () => {
+            logBuffer = [];
+            lastLogState = '';
+            lastVideoState = '';
+            debugLog.innerHTML = '<div class="log-entry log-info">Log cleared</div>';
+        };
+
+        document.getElementById('toggleLogBtn').onclick = () => {
+            const logElement = document.getElementById('debugLog');
+            const toggleBtn = document.getElementById('toggleLogBtn');
+            const isVisible = logElement.style.display !== 'none';
+            
+            if (isVisible) {
+                logElement.style.display = 'none';
+                toggleBtn.classList.remove('active');
+            } else {
+                logElement.style.display = 'block';
+                toggleBtn.classList.add('active');
+            }
+        };
+
+        // Close modal when clicking outside
+        configModal.addEventListener('click', (e) => {
+            if (e.target === configModal) {
+                configModal.style.display = 'none';
+            }
+        });
+
+        // Latency monitoring
+        let lastLatency = '';
+        setInterval(() => {
+            if (flvPlayer && video.buffered.length > 0 && !video.paused) {
+                const bufferedEnd = video.buffered.end(0);
+                const currentTime = video.currentTime;
+                const latency = bufferedEnd - currentTime;
+                const latencyText = `${latency.toFixed(2)}s`;
+                
+                if (latencyStatus.textContent !== latencyText) {
+                    latencyStatus.textContent = latencyText;
+                    
+                    // Set latency status color
+                    if (latency > 3) {
+                        latencyStatus.className = 'status-value error';
+                        if (lastLatency !== latencyText) {
+                            addLog(`High latency detected: ${latencyText}, cleaning buffer...`, 'warn');
+                            try {
+                                if (video.seekable.length > 0) {
+                                    const seekableEnd = video.seekable.end(0);
+                                    video.currentTime = seekableEnd - 0.5;
+                                }
+                            } catch (e) {
+                                addLog(`Buffer cleanup failed: ${e.message}`, 'warn');
+                            }
+                            lastLatency = latencyText;
+                        }
+                    } else if (latency > 1.5) {
+                        latencyStatus.className = 'status-value warning';
+                    } else {
+                        latencyStatus.className = 'status-value success';
+                    }
+                }
+            } else {
+                latencyStatus.textContent = '-';
+                latencyStatus.className = 'status-value';
+            }
+        }, 1000);
+
+        function initializePlayer() {
+            addLog('Initializing 3D Printer Camera...', 'info');
+            updateStepStatus(4, 'active');
+            createPlayer();
+        }
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            destroyPlayer();
+        });
+
+        // Persist step completion state
+        function markStepComplete(stepNum) {
+            updateStepStatus(stepNum, 'complete');
+            localStorage.setItem(`step${stepNum}_complete`, 'true');
+        }
+
+        function restoreStepsFromStorage() {
+            for (let i = 1; i <= 4; i++) {
+                if (localStorage.getItem(`step${i}_complete`) === 'true') {
+                    updateStepStatus(i, 'complete');
+                }
+            }
+        }
+
+        // --- Show/Hide Steps Button Logic ---
+        const stepsGrid = document.querySelector('.steps-grid');
+        const toggleStepsBtn = document.getElementById('toggleStepsBtn');
+
+        function checkAllStepsComplete() {
+            const allComplete = [1, 2, 3, 4].every(num => {
+                const step = document.getElementById(`step${num}`);
+                return step && step.classList.contains('complete');
+            });
+
+            if (allComplete) {
+                stepsGrid.style.display = 'none';
+                toggleStepsBtn.style.display = 'inline-block';
+            }
+        }
+
+        toggleStepsBtn.addEventListener('click', () => {
+            const isVisible = stepsGrid.style.display !== 'none';
+            stepsGrid.style.display = isVisible ? 'none' : 'grid';
+            toggleStepsBtn.innerText = isVisible ? '🔽 Show Steps' : '🔼 Hide Steps';
+        });
+        // --- End Show/Hide Steps Button Logic ---
+
+        restoreStepsFromStorage();
+
+        setTimeout(() => markStepComplete(1), 2000);
+        setTimeout(() => markStepComplete(2), 4000);
+        setTimeout(() => markStepComplete(3), 6000);
+        setTimeout(() => markStepComplete(4), 8000);
+        setTimeout(checkAllStepsComplete, 8500);
+
+        // Initialize application
+        loadConfig();
+    </script>
+</body>
+<footer style="text-align: center; font-size: 0.65rem; color: var(--text-secondary); padding: 1rem 0;">
+    <a href="https://github.com/T30dev" target="_blank" class="tooltip" data-tooltip="GitHub Repository" style="margin-right: 0.5rem; text-decoration: none; color: var(--text-secondary);">
+        <svg viewBox="0 0 496 512" width="16" height="16" fill="currentColor" xmlns="http://www.w3.org/2000/svg" style="vertical-align: middle;">
+            <path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/>
+        </svg>
+    </a>
+    Developed by Teo
+</footer>
+</html>
