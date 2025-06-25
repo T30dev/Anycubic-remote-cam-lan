@@ -5,6 +5,9 @@ Modern web interface to view FLV camera streams from 3D printers over LAN.
 ## ✨ Features
 
 - 🎥 Live FLV video playback via `flv.js`
+![image](https://github.com/user-attachments/assets/e731c66d-a1e0-480c-8e83-2d8834c89398)
+
+
 - 📡 Custom configuration of protocol, IP and port
 - 📊 Visual indicators for status, speed and latency
 - 🛠️ Manual controls for playback, reconnect and log clearing
