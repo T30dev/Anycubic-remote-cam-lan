@@ -22,7 +22,7 @@ Modern web interface to view FLV camera streams from 3D printers over LAN.
 
 1. Enable **LAN mode** on your 3D printer (e.g., Anycubic Kobra S1)
 2. Copy this repository to your local machine or server
-3. Open the file `anycubic-s1-cam-v3.html` in a modern browser
+3. Open the file `Remote-cam.html` in a browser
 4. Enter the printer’s IP address/domain and FLV port (e.g., `192.168.1.6:18088/flv`)
 5. Click **Connect** to start streaming
 
