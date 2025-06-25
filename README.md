@@ -37,6 +37,7 @@ This project can be easily deployed in multiple environments:
 - 🌐 **Domain with Nginx Proxy Manager**: You can point a custom domain to the server where this is hosted using [Nginx Proxy Manager](https://nginxproxymanager.com/). Ensure:
   - The printer's stream is accessible at `http://192.168.1.6:18088`
   - The interface is served from `http://192.168.1.9:8080`
+- 🏠 **Home Assistant**: You can embed the interface into your Home Assistant dashboard using the **Web Page card**. Just provide the full local or external URL where the interface is hosted.
 
 ## ⚙️ Local Deployment
 
