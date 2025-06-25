@@ -26,6 +26,67 @@ Modern web interface to view FLV camera streams from 3D printers over LAN.
 4. Enter the printer’s IP address/domain and FLV port (e.g., `192.168.1.6:18088/flv`)
 5. Click **Connect** to start streaming
 
+## 📦 Deployment Options
+
+This project can be easily deployed in multiple environments:
+
+- 🐳 **Docker / Proxmox LXC**: You can host the interface from a container (LXC or Docker) inside Proxmox. Just place the HTML file in a shared or mounted volume and serve it via a lightweight HTTP server (see below).
+- 🌐 **Domain with Nginx Proxy Manager**: You can point a custom domain to the server where this is hosted using [Nginx Proxy Manager](https://nginxproxymanager.com/). Ensure:
+  - The printer's stream is accessible at `http://192.168.1.6:18088`
+  - The interface is served from `http://192.168.1.9:8080`
+
+## ⚙️ Local Deployment
+
+To deploy the interface manually on any machine:
+
+1. Place `Remote-cam.html` in any directory.
+2. From that directory, run a simple HTTP server:
+
+   ```bash
+   python3 -m http.server 8000
+   ```
+
+3. Open your browser and go to `http://<your-machine-ip>:8000/Remote-cam.html`
+
+This method works great on local networks, lightweight VMs, or containers.
+
+### ⏱️ Persistent Hosting
+
+To keep the interface running permanently without needing to run the command manually every time, you can:
+
+- Use a systemd service (Linux):
+  
+  ```bash
+  [Unit]
+  Description=Remote Cam Web Server
+  After=network.target
+
+  [Service]
+  WorkingDirectory=/path/to/your/html
+  ExecStart=/usr/bin/python3 -m http.server 8000
+  Restart=always
+
+  [Install]
+  WantedBy=multi-user.target
+  ```
+
+  Save this as `/etc/systemd/system/remotecam.service`, then run:
+
+  ```bash
+  sudo systemctl daemon-reexec
+  sudo systemctl enable remotecam
+  sudo systemctl start remotecam
+  ```
+
+- Or use `pm2` (cross-platform):
+
+  ```bash
+  npm install -g pm2
+  pm2 start "python3 -m http.server 8000" --name remote-cam
+  pm2 save
+  pm2 startup
+  ```
+
 ## 📦 Files
 
 - Main interface with embedded HTML, CSS, and JS
